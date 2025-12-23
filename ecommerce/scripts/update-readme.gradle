@@ -1,0 +1,202 @@
+/**
+ * README.md 자동 업데이트 스크립트
+ * 프로젝트 구조 변경 시 자동으로 README.md를 업데이트합니다.
+ */
+
+task updateReadme {
+    description = 'README.md 파일을 자동으로 업데이트합니다'
+    group = 'documentation'
+    
+    doLast {
+        def projectStructure = generateProjectStructure()
+        def envVariables = extractEnvironmentVariables()
+        
+        updateReadmeFile(projectStructure, envVariables)
+        
+        println "README.md 파일이 업데이트되었습니다."
+    }
+}
+
+def generateProjectStructure() {
+    def structure = new StringBuilder()
+    def srcDir = file('src/main/java/com/ecommerce')
+    
+    structure.append("```\n")
+    structure.append("src/main/java/com/ecommerce/\n")
+    
+    if (srcDir.exists()) {
+        appendDirectoryStructure(srcDir, structure, "")
+    }
+    
+    structure.append("```\n")
+    return structure.toString()
+}
+
+def appendDirectoryStructure(File dir, StringBuilder structure, String indent) {
+    def files = dir.listFiles()?.sort { it.name }
+    
+    files?.each { file ->
+        if (file.isDirectory()) {
+            structure.append("${indent}├── ${file.name}/\n")
+            
+            // 주요 디렉토리에 대한 설명 추가
+            def description = getDirectoryDescription(file.name)
+            if (description) {
+                structure.append("${indent}│   # ${description}\n")
+            }
+            
+            appendDirectoryStructure(file, structure, "${indent}│   ")
+        } else if (file.name.endsWith('.java')) {
+            structure.append("${indent}├── ${file.name}")
+            
+            // 주요 클래스에 대한 설명 추가
+            def classDescription = getClassDescription(file.name)
+            if (classDescription) {
+                structure.append("    # ${classDescription}")
+            }
+            structure.append("\n")
+        }
+    }
+}
+
+def getDirectoryDescription(String dirName) {
+    def descriptions = [
+        'common': '공통 모듈',
+        'code': '응답 코드 정의',
+        'response': 'API 응답 포맷',
+        'util': '유틸리티 클래스',
+        'crypto': '암호화 관련',
+        'user': '회원 서비스',
+        'domain': '도메인 계층',
+        'entity': '엔티티',
+        'repository': '리포지토리 인터페이스',
+        'application': '애플리케이션 계층',
+        'service': '서비스',
+        'dto': 'DTO',
+        'request': '요청 DTO',
+        'response': '응답 DTO',
+        'infrastructure': '인프라 계층',
+        'security': '보안 관련'
+    ]
+    
+    return descriptions[dirName]
+}
+
+def getClassDescription(String className) {
+    def descriptions = [
+        'CommonResultCode.java': '범용 결과 코드',
+        'ApiResponse.java': '공통 응답 구조',
+        'MaskingUtils.java': '개인정보 마스킹',
+        'ScpDbCryptoUtil.java': '암호화 인터페이스',
+        'DefaultScpDbCryptoUtil.java': '기본 암호화 구현체',
+        'User.java': '사용자 엔티티',
+        'UserRole.java': '사용자 권한',
+        'Cart.java': '장바구니',
+        'CartItem.java': '장바구니 아이템',
+        'Wishlist.java': '찜 목록',
+        'AuthService.java': '인증 서비스',
+        'LoginResultCode.java': '로그인 결과 코드',
+        'EcommerceApplication.java': '메인 클래스',
+        'ServletInitializer.java': '서블릿 초기화'
+    ]
+    
+    return descriptions[className]
+}
+
+def extractEnvironmentVariables() {
+    def envVars = []
+    def propertiesFile = file('src/main/resources/application.properties')
+    
+    if (propertiesFile.exists()) {
+        propertiesFile.eachLine { line ->
+            if (line.contains('${') && line.contains('}')) {
+                def matcher = line =~ /\$\{([^}]+)\}/
+                matcher.each { match ->
+                    def varName = match[1]
+                    if (!envVars.contains(varName)) {
+                        envVars.add(varName)
+                    }
+                }
+            }
+        }
+    }
+    
+    // Java 파일에서 @Value 어노테이션 스캔
+    fileTree('src/main/java').matching {
+        include '**/*.java'
+    }.each { file ->
+        file.eachLine { line ->
+            if (line.contains('@Value(') && line.contains('${')) {
+                def matcher = line =~ /\$\{([^}:]+)/
+                matcher.each { match ->
+                    def varName = match[1]
+                    if (!envVars.contains(varName)) {
+                        envVars.add(varName)
+                    }
+                }
+            }
+        }
+    }
+    
+    return envVars
+}
+
+def updateReadmeFile(String projectStructure, List<String> envVariables) {
+    def readmeFile = file('README.md')
+    
+    if (!readmeFile.exists()) {
+        println "README.md 파일이 존재하지 않습니다. 새로 생성합니다."
+        return
+    }
+    
+    def content = readmeFile.text
+    
+    // 프로젝트 구조 업데이트
+    content = content.replaceAll(
+        /(?s)## 🏗 프로젝트 구조.*?```.*?```/,
+        "## 🏗 프로젝트 구조\n\n${projectStructure}"
+    )
+    
+    // 환경 변수 섹션 업데이트
+    if (!envVariables.isEmpty()) {
+        def envSection = generateEnvironmentVariablesSection(envVariables)
+        content = content.replaceAll(
+            /(?s)### 필수 환경 변수.*?```properties.*?```/,
+            "### 필수 환경 변수\n\n```properties\n${envSection}```"
+        )
+    }
+    
+    // 업데이트 시간 추가
+    def timestamp = new Date().format('yyyy-MM-dd HH:mm:ss')
+    content = content.replaceAll(
+        /\*\*Note\*\*: 프로젝트 구조가 변경되거나.*$/,
+        "**Note**: 프로젝트 구조가 변경되거나 새로운 환경 변수가 생기면 이 README.md 파일을 자동으로 업데이트합니다.\n\n*Last updated: ${timestamp}*"
+    )
+    
+    readmeFile.text = content
+}
+
+def generateEnvironmentVariablesSection(List<String> envVariables) {
+    def section = new StringBuilder()
+    
+    envVariables.each { varName ->
+        def description = getEnvironmentVariableDescription(varName)
+        section.append("${varName}=                # ${description}\n")
+    }
+    
+    return section.toString()
+}
+
+def getEnvironmentVariableDescription(String varName) {
+    def descriptions = [
+        'app.crypto.secret-key': 'AES-256 암호화 키 (Base64 인코딩)',
+        'app.jwt.secret': 'JWT 서명 키',
+        'app.jwt.access-token-expiry': '액세스 토큰 만료 시간 (초)',
+        'app.jwt.refresh-token-expiry': '리프레시 토큰 만료 시간 (초)',
+        'spring.datasource.url': '데이터베이스 연결 URL',
+        'spring.datasource.username': '데이터베이스 사용자명',
+        'spring.datasource.password': '데이터베이스 비밀번호'
+    ]
+    
+    return descriptions[varName] ?: '설정 값'
+}
