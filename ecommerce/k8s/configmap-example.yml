@@ -1,0 +1,122 @@
+# K8s ConfigMap 예시 - 운영 환경 설정
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-config
+  namespace: ecommerce
+data:
+  # 서버 설정
+  SERVER_PORT: "8080"
+  SERVER_CONTEXT_PATH: "/api"
+  SERVER_TOMCAT_MAX_THREADS: "200"
+  SERVER_TOMCAT_MIN_SPARE_THREADS: "10"
+  SERVER_TOMCAT_MAX_CONNECTIONS: "8192"
+  SERVER_TOMCAT_ACCEPT_COUNT: "100"
+  
+  # 데이터베이스 풀 설정
+  DB_POOL_MAX_SIZE: "20"
+  DB_POOL_MIN_IDLE: "10"
+  DB_CONNECTION_TIMEOUT: "30000"
+  DB_IDLE_TIMEOUT: "600000"
+  DB_MAX_LIFETIME: "1800000"
+  DB_LEAK_DETECTION_THRESHOLD: "60000"
+  DB_SCHEMA: "public"
+  
+  # Redis 설정
+  REDIS_PORT: "6379"
+  REDIS_TIMEOUT: "5000ms"
+  REDIS_POOL_MAX_ACTIVE: "20"
+  REDIS_POOL_MAX_IDLE: "20"
+  REDIS_POOL_MIN_IDLE: "5"
+  
+  # JWT 설정
+  JWT_ACCESS_TOKEN_EXPIRY: "3600"
+  JWT_REFRESH_TOKEN_EXPIRY: "604800"
+  
+  # 로깅 설정
+  LOG_LEVEL_APP: "INFO"
+  LOG_LEVEL_SECURITY: "WARN"
+  LOG_LEVEL_HIBERNATE: "WARN"
+  LOG_LEVEL_WEB: "WARN"
+  LOG_FILE_PATH: "/app/logs/ecommerce.log"
+  LOG_MAX_FILE_SIZE: "100MB"
+  LOG_MAX_HISTORY: "30"
+  
+  # 액추에이터 설정
+  ACTUATOR_BASE_PATH: "/actuator"
+  PROMETHEUS_ENABLED: "true"
+  
+  # 보안 설정
+  SECURITY_REQUIRE_SSL: "true"
+  
+  # 캐시 설정
+  CACHE_TYPE: "redis"
+  CACHE_TTL: "3600000"
+
+---
+# K8s Secret 예시 - 민감한 정보
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ecommerce-secrets
+  namespace: ecommerce
+type: Opaque
+data:
+  # Base64로 인코딩된 값들 (실제 운영에서는 외부 시크릿 관리 도구 사용 권장)
+  SPRING_DATASOURCE_URL: <BASE64_ENCODED_DB_URL>
+  SPRING_DATASOURCE_USERNAME: <BASE64_ENCODED_DB_USERNAME>
+  SPRING_DATASOURCE_PASSWORD: <BASE64_ENCODED_DB_PASSWORD>
+  REDIS_HOST: <BASE64_ENCODED_REDIS_HOST>
+  REDIS_PASSWORD: <BASE64_ENCODED_REDIS_PASSWORD>
+  JWT_SECRET: <BASE64_ENCODED_JWT_SECRET>
+  CRYPTO_SECRET_KEY: <BASE64_ENCODED_CRYPTO_KEY>
+
+---
+# 사용 예시 - Deployment에서 환경 변수 주입
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecommerce-app
+  namespace: ecommerce
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ecommerce
+  template:
+    metadata:
+      labels:
+        app: ecommerce
+    spec:
+      containers:
+      - name: ecommerce
+        image: ecommerce:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        envFrom:
+        - configMapRef:
+            name: ecommerce-config
+        - secretRef:
+            name: ecommerce-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10

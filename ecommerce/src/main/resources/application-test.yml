@@ -1,0 +1,54 @@
+# 테스트 환경 설정
+spring:
+  # 테스트용 인메모리 데이터베이스
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  # JPA 설정 (테스트 환경)
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 테스트마다 스키마 재생성
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  # H2 콘솔 (테스트 디버깅용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Redis (테스트용 임베디드)
+  data:
+    redis:
+      host: localhost
+      port: 6370  # 테스트용 포트
+
+# 로깅 설정 (테스트)
+logging:
+  level:
+    com.ecommerce: DEBUG
+    org.springframework.test: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 애플리케이션 설정 (테스트)
+app:
+  jwt:
+    secret: test-jwt-secret-key-for-testing-only
+    access-token-expiry: 300   # 5분 (테스트용 짧은 시간)
+    refresh-token-expiry: 600  # 10분
+  
+  crypto:
+    secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHk=  # Base64 encoded
+
+# 테스트 프로파일에서는 액추에이터 비활성화
+management:
+  endpoints:
+    enabled-by-default: false

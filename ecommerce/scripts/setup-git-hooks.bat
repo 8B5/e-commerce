@@ -1,41 +1,42 @@
 @echo off
-REM Git Hook 설정 스크립트 (Windows)
-REM README.md 자동 업데이트를 위한 pre-commit hook 설정
+chcp 65001 > nul
+REM Git Hook Setup Script (Windows)
+REM Setup pre-commit hook for automatic README.md updates
 
-echo Git Hook 설정 중...
+echo Setting up Git hooks...
 
-REM .git/hooks 디렉토리 확인
+REM Check .git/hooks directory
 if not exist ".git\hooks" (
-    echo Error: Git 저장소가 아닙니다.
+    echo Error: Not a Git repository.
     exit /b 1
 )
 
-REM pre-commit hook 생성
+REM Create pre-commit hook
 (
 echo #!/bin/bash
 echo.
-echo # README.md 자동 업데이트 pre-commit hook
+echo # README.md automatic update pre-commit hook
 echo.
-echo echo "README.md 업데이트 확인 중..."
+echo echo "Checking README.md updates..."
 echo.
-echo # Java 파일이 변경되었는지 확인
-echo if git diff --cached --name-only ^| grep -E '\.\(java^|properties\)$' ^> /dev/null; then
-echo     echo "Java 파일 변경 감지. README.md 업데이트 중..."
+echo # Check if Java files have been changed
+echo if git diff --cached --name-only ^| grep -E '\.\(java^|properties^|yml^|yaml\)$' ^> /dev/null; then
+echo     echo "Java/config files changed. Updating README.md..."
 echo.    
-echo     # Gradle 태스크 실행
+echo     # Run Gradle task
 echo     ./gradlew updateReadme --quiet
 echo.    
-echo     # README.md가 변경되었다면 스테이징에 추가
+echo     # Add README.md to staging if changed
 echo     if [ -n "$\(git diff README.md\)" ]; then
-echo         echo "README.md가 업데이트되었습니다."
+echo         echo "README.md has been updated."
 echo         git add README.md
 echo     fi
 echo fi
 echo.
-echo echo "README.md 업데이트 완료."
+echo echo "README.md update completed."
 ) > .git\hooks\pre-commit
 
-echo Git Hook 설정 완료!
-echo 이제 Java 파일을 커밋할 때마다 README.md가 자동으로 업데이트됩니다.
+echo Git hooks setup completed!
+echo Java files will now automatically update README.md when committed.
 
 pause

@@ -1,0 +1,63 @@
+# E-Commerce MSA Platform - 메인 설정
+spring:
+  application:
+    name: ecommerce
+  
+  # 기본 프로파일 설정 (로컬 개발 환경)
+  profiles:
+    active: local
+  
+  # JPA 공통 설정
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+          order_inserts: true
+          order_updates: true
+    show-sql: false
+
+# 서버 설정
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# 로깅 설정
+logging:
+  level:
+    com.ecommerce: INFO
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 애플리케이션 공통 설정
+app:
+  # JWT 기본 설정 (환경별로 오버라이드)
+  jwt:
+    access-token-expiry: 3600      # 1시간
+    refresh-token-expiry: 604800   # 7일
+  
+  # 암호화 설정
+  crypto:
+    algorithm: AES-256-GCM
+
+# 액추에이터 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+---
+# 환경별 설정 분리를 위한 구분자

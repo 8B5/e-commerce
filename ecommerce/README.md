@@ -111,16 +111,43 @@ app.jwt.refresh-token-expiration=                # 설정 값
 
 ## 🚀 시작하기
 
+### 0. 터미널 설정 (Windows 사용자)
+Windows에서 한글이 깨지는 경우 다음 스크립트를 실행하세요:
+```bash
+# 터미널 인코딩 설정
+scripts\setup-terminal.bat
+
+# 인코딩 테스트
+scripts\test-encoding.bat
+```
+
+**권장사항:**
+- Windows Terminal 사용 (Command Prompt 대신)
+- PowerShell 스크립트 사용 (`.ps1` 파일)
+- 한글 지원 폰트 설정 (D2Coding, Consolas 등)
+
 ### 1. 프로젝트 클론
 ```bash
 git clone <repository-url>
 cd ecommerce
 ```
 
-### 2. 환경 설정
+### 2. 로컬 개발 환경 시작
+```bash
+# Windows (Command Prompt)
+scripts\start-local-env.bat
+
+# Windows (PowerShell) - 권장
+scripts\start-local-env.ps1
+
+# Linux/Mac
+scripts/start-local-env.sh
+```
+
+### 3. 환경 설정
 `src/main/resources/application.properties` 파일에 필요한 환경 변수를 설정합니다.
 
-### 3. 빌드 및 실행
+### 4. 빌드 및 실행
 ```bash
 # 빌드
 ./gradlew build
@@ -128,8 +155,23 @@ cd ecommerce
 # 테스트 실행
 ./gradlew test
 
-# 애플리케이션 실행
-./gradlew bootRun
+# 애플리케이션 실행 (로컬 환경)
+./gradlew bootRun --args='--spring.profiles.active=local'
+
+# Windows
+gradlew.bat bootRun --args="--spring.profiles.active=local"
+```
+
+### 5. 개발 환경 종료
+```bash
+# Windows (Command Prompt)
+scripts\stop-local-env.bat
+
+# Windows (PowerShell)
+scripts\stop-local-env.ps1
+
+# Linux/Mac
+scripts/stop-local-env.sh
 ```
 
 ## 📊 주요 기능
